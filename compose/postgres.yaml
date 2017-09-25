@@ -1,0 +1,44 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "postgres"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        application: "postgres"
+        version: "1.0"
+        release: "1"
+        stage: "test"
+    spec:
+      containers:
+        - name: "postgres"
+          image: "postgres:9.6.1"
+          volumeMounts:
+          - mountPath: "/postgresql/data"
+            name: zmon-data
+            subPath: postgresql-data
+          env:
+            - name: POSTGRES_PASSWORD
+              value: "Uhaf5AekUhaf5Aek"
+            - name: PGDATA
+              value: "/postgresql/data/postgresql-data"
+            # JVM memory
+            - name: MEM_TOTAL_KB
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+                  divisor: 1Ki
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
+          ports:
+            - containerPort: 5432
+      volumes:
+      - name: zmon-data
+        persistentVolumeClaim:
+          claimName: zmon-data

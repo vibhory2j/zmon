@@ -1,0 +1,31 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "eventlog"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        application: "eventlog"
+        version: "1.0"
+        release: "1"
+        stage: "test"
+    spec:
+      containers:
+        - name: "eventlog"
+          image: "registry.opensource.zalan.do/stups/zmon-eventlog-service:cd17"
+          env:
+            # JVM memory
+            - name: MEM_JAVA_PERCENT
+              value: "10"
+            - name: POSTGRESQL_HOST
+              value: "postgres"
+            - name: POSTGRESQL_DATABASE
+              value: "local_zmon_db"
+            - name: POSTGRESQL_USER
+              value: "postgres"
+            - name: POSTGRESQL_PASSWORD
+              value: "Uhaf5AekUhaf5Aek"
+          ports:
+            - containerPort: 8081   

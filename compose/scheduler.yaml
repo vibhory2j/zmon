@@ -1,0 +1,36 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "scheduler"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        application: "scheduler"
+        version: "1.0"
+        release: "1"
+        stage: "test"
+    spec:
+      containers:
+        - name: "scheduler"
+          image: "registry.opensource.zalan.do/stups/zmon-scheduler:v38"
+          env:
+            # JVM memory
+            - name: MEM_JAVA_PERCENT
+              value: "10"
+            - name: JAVA_OPTS
+              value: "-Djavax.net.ssl.trustStorePassword=mypassword -Djavax.net.ssl.trustStore=/resources/host-controller.jks"
+            - name: SCHEDULER_URLS_WITHOUT_REST
+              value: "true"
+            - name: SCHEDULER_ENTITY_SERVICE_URL
+              value: "https://controller:8443"
+            - name: SCHEDULER_OAUTH2_STATIC_TOKEN
+              value: "123"
+            - name: SCHEDULER_CONTROLLER_URL
+              value: "https://controller:8443"
+            - name: SCHEDULER_REDIS_HOST
+              value: "redis"
+          ports:
+            - containerPort: 8085
+            #kubectl cp resources scheduler-3081345716-bwtxl:/resources

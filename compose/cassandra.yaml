@@ -1,0 +1,37 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "cassandra"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        application: "cassandra"
+        version: "1.0"
+        release: "1"
+        stage: "test"
+    spec:
+      containers:
+        - name: "cassandra"
+          image: "cassandra:3.11"
+          ports:
+          - containerPort: 7000
+            name: intra-node
+          - containerPort: 7199
+            name: jmx
+          - containerPort: 9042
+            name: cql
+          env:
+            # JVM memory
+            - name: JAVA_OPTS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+                  divisor: 1G
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 2Gi
