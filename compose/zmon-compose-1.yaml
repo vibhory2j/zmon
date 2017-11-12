@@ -7,7 +7,7 @@ services:
         ports:
          - "38088:5432"
         volumes:
-         - "./postgresql-data:/var/lib/postgresql/data"
+         - "/tmp/postgresql-data:/var/lib/postgresql/data"
         healthcheck:
             test: "psql -c 'SELECT 1' -U postgres"
             interval: 10s
@@ -25,35 +25,23 @@ services:
         environment:
             JAVA_OPTS: "-Xmx512M"
         volumes:
-         - "./cassandra-data:/var/lib/cassandra" 
+         - "/tmp/cassandra-data:/var/lib/cassandra" 
         healthcheck:
             test: "bash -c 'nodetool status | grep UN'"
             interval: 15s
             retries: 99
             timeout: 15s
-    #data-service:
-    #    image: zmon-data-service:1.0
-    #    environment:
-    #        JAVA_OPTS: "-Xmx512M -Dappdynamics.controller.hostName=test-appd.zalando.org -Dappdynamics.controller.port=443 -Dappdynamics.controller.ssl.enabled=true -Dappdynamics.agent.applicationName=zmon -Dappdynamics.agent.tierName=zmon-data-service -Dappdynamics.agent.nodeName=zmon-data-service -Dappdynamics.agent.accountName=customer1 -Dappdynamics.agent.accountAccessKey=9966815f-23ba-4de1-a9fb-19e9a07a49a6"
-    #        DATASERVICE_PROXY_KAIROSDB_URL: http://kairosdb:8083
-    #        #DATASERVICE_REDIS_HOST: redis
-    #        DATASERVICE_REDIS_HOST: a34e6d909c3dc11e7a6b70249bf77341-678114054.eu-central-1.elb.amazonaws.com
-    #        DATASERVICE_REDIS_PORT: 6379
-    #        DATASERVICE_EVENTLOG_URL: http://eventlog:8081/
-    #        TOKENINFO_URL:  https://info.services.auth.zalando.com/oauth2/tokeninfo?access_token=
-    #    ports:
-     #   - "8086:8086"
     redis:
         image: registry.opensource.zalan.do/stups/redis:3.2.0-alpine
         ports:
          - "38086:6379"
     kairosdb:
-#        image: registry.opensource.zalan.do/stups/kairosdb:cd102
-        image: kairosdb-ot:1.1
+        image: registry.opensource.zalan.do/stups/kairosdb:cd102
+#        image: kairosdb-ot:1.0
         environment:
             KAIROSDB_JETTY_PORT: 8083
             KAIROSDB_DATASTORE_CASSANDRA_HOST_LIST: cassandra
-            JAEGER_SERVICE_NAME: "zmon-kairosdb"
+            JAEGER_SERVICE_NAME: "zmon-eventlog"
             JAEGER_AGENT_HOST: "jaeger"
             JAEGER_AGENT_PORT: 5775
             JAEGER_REPORTER_LOG_SPANS: "true"
@@ -129,11 +117,6 @@ services:
         depends_on:
             - "redis"
             - "postgresql"
-            - "jaeger"
-    jaeger:
-        image: jaegertracing/all-in-one:latest
-        ports:
-         - "16686:16686"
     scheduler:
         image: pierone.stups.zalan.do/mentoring/zmon-scheduler-ot:1.0 
         environment:
@@ -156,28 +139,19 @@ services:
         volumes:
             - "./resources:/resources"
     worker:
-        #image: registry.opensource.zalan.do/stups/zmon-worker:v130
-        image: zmon-worker:1.0
-        ports:
-         - "9000:8080"
+        image: registry.opensource.zalan.do/stups/zmon-worker:v130
         environment:
           WORKER_REDIS_SERVERS: redis:6379
           WORKER_KAIROSDB_HOST: kairosdb
           WORKER_EVENTLOG_HOST: eventlog
           WORKER_EVENTLOG_PORT: 8081
-          JAEGER_SERVICE_NAME: "zmon-worker"
-          JAEGER_AGENT_HOST: "jaeger"
-          JAEGER_AGENT_PORT: 5775
-          JAEGER_REPORTER_LOG_SPANS: "true"
-          JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
-          JAEGER_TAGS: "opentracing=poc"
     notification:
         image: zmon-notification-service-ot:1.0
         environment:
           NOTIFICATIONS_EVENTLOG_URL: "http://eventlog:8081"
           NOTIFICATIONS_EVENTLOG_URL: "true"
           NOTIFICATIONS_ZMON_URL: "http://controller:8443/"
-          NOTIFICATIONS_REDIS_URI: "redis://a34e6d909c3dc11e7a6b70249bf77341-678114054.eu-central-1.elb.amazonaws.com:6379/0"
+          NOTIFICATIONS_REDIS_URI: "redis://redis:6379/0"
           JAEGER_SERVICE_NAME: "zmon-notification-service"
           JAEGER_AGENT_HOST: "jaeger"
           JAEGER_AGENT_PORT: 5775
@@ -188,3 +162,7 @@ services:
           JAEGER_SAMPLER_TYPE: "probabilistic"
           JAEGER_SAMPLER_PARAM: 1
           SERVER_PORT: 9090
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        ports:
+         - "16686:16686"

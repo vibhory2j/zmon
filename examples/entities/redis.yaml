@@ -1,3 +1,4 @@
 - id: zmon-redis
   type: redis
   host: localhost
+  port: 38086

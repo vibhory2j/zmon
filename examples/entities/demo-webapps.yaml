@@ -1,5 +1,5 @@
 - id: zmon-kairosdb
-  url: http://localhost:8083
+  url: http://localhost:38083
   type: demowebapp
 - id: zmon-eventlog-service
   url: http://localhost:8081
@@ -14,5 +14,5 @@
   type: demowebapp
   management_url: https://localhost:7979
 - id: zmon-worker
-  url: http://localhost:8080
+  url: http://localhost:9000
   type: demowebapp
