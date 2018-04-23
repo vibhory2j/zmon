@@ -1,0 +1,27 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "worker"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        application: "worker"
+        version: "1.0"
+        release: "1"
+        stage: "test"
+    spec:
+      containers:
+        - name: "worker"
+          image: "registry.opensource.zalan.do/stups/zmon-worker:v130"
+          env:
+            # JVM memory
+            - name: WORKER_REDIS_SERVERS
+              value: "redis:6379"
+            - name: WORKER_KAIROSDB_HOST
+              value: "kairosdb"
+            - name: WORKER_EVENTLOG_HOST
+              value: "eventlog"
+            - name: WORKER_EVENTLOG_PORT
+              value: "8081"   

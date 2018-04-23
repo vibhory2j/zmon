@@ -1,0 +1,36 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: "kairosdb"
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        application: "kairosdb"
+        version: "1.0"
+        release: "1"
+        stage: "test"
+    spec:
+      containers:
+        - name: "kairosdb"
+          image: "registry.opensource.zalan.do/stups/kairosdb:cd102"
+          env:
+            # JVM memory
+            - name: JAVA_OPTS
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+                  divisor: 1G
+            - name: KAIROSDB_JETTY_PORT
+              value: "8083"
+            - name: KAIROSDB_DATASTORE_CASSANDRA_HOST_LIST
+              value: "cassandra"     
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 1Gi
+          ports:
+            - containerPort: 8083    

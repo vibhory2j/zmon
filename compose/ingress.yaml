@@ -1,0 +1,17 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: "controller"
+spec:
+  rules:
+    # DNS name your application should be exposed on
+    - host: "zmon-test.teapot.zalan.do"
+      http:
+        paths:
+          - backend:
+              serviceName: "controller"
+              servicePort: main-port
+        paths:
+          - backend:
+              serviceName: "controller"
+              servicePort: manage-port

@@ -21,42 +21,78 @@ services:
           postgresql:
               condition: "service_healthy"
     cassandra:
-        image: cassandra:3.9
+        image: cassandra:3.11
         environment:
-            JAVA_OPTS: "-Xmx1G"
+            JAVA_OPTS: "-Xmx512M"
+        ports:
+         - "9042:9042"
+         - "7199:7199"
         volumes:
-         - "./cassandra-data:/var/lib/cassandra"
+         - "./cassandra-data:/var/lib/cassandra" 
         healthcheck:
             test: "bash -c 'nodetool status | grep UN'"
             interval: 15s
             retries: 99
             timeout: 15s
+    data-service:
+        #image: zmon-data-service:1.0
+        image: pierone.stups.zalan.do/zmon/zmon-data-service-unstable:pr-85-1-1bf4e01
+        environment:
+            JAVA_OPTS: "-Xmx512M -Dappdynamics.controller.hostName=test-appd.zalando.org -Dappdynamics.controller.port=443 -Dappdynamics.controller.ssl.enabled=true -Dappdynamics.agent.applicationName=zmon -Dappdynamics.agent.tierName=zmon-data-service -Dappdynamics.agent.nodeName=zmon-data-service -Dappdynamics.agent.accountName=customer1 -Dappdynamics.agent.accountAccessKey=9966815f-23ba-4de1-a9fb-19e9a07a49a6"
+            DATASERVICE_PROXY_KAIROSDB_URL: http://kairosdb:8083
+            DATASERVICE_REDIS_HOST: redis
+            DATASERVICE_REDIS_PORT: 6379
+            DATASERVICE_EVENTLOG_URL: http://eventlog:8081/
+            TOKENINFO_URL:  https://info.services.auth.zalando.com/oauth2/tokeninfo?access_token=
+        ports:
+         - "8086:8086"
     redis:
         image: registry.opensource.zalan.do/stups/redis:3.2.0-alpine
         ports:
          - "38086:6379"
     kairosdb:
-        image: registry.opensource.zalan.do/stups/kairosdb:cd102
+        #image: pierone.stups.zalan.do/zmon/kairosdb-unstable:pr-49-6-2146543
+        image: kairosdb-ot:1.0
         environment:
             KAIROSDB_JETTY_PORT: 8083
             KAIROSDB_DATASTORE_CASSANDRA_HOST_LIST: cassandra
+            KAIROSDB_DATASTORE_CASSANDRA_DATAPOINT_TTL: 864000
+            JAEGER_SERVICE_NAME: "zmon-kairosdb"
+            JAEGER_AGENT_HOST: "jaeger"
+            JAEGER_AGENT_PORT: 5775
+            JAEGER_REPORTER_LOG_SPANS: "true"
+            JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+            JAEGER_TAGS: "opentracing=poc"
+            JAEGER_REPORTER_FLUSH_INTERVAL: 100
+            JAEGER_SAMPLER_TYPE: "probabilistic"
+            JAEGER_SAMPLER_PARAM: 1
         depends_on:
           cassandra:
             condition: "service_healthy"
         ports:
          - "38083:8083"
     eventlog:
-        image: registry.opensource.zalan.do/stups/zmon-eventlog-service:cd17
+        image: pierone.stups.zalan.do/mentoring/zmon-eventlog-service:ot 
         environment:
             MEM_JAVA_PERCENT: 10
             POSTGRESQL_HOST: postgresql
             POSTGRESQL_DATABASE: local_zmon_db
             POSTGRESQL_USER: postgres
             POSTGRESQL_PASSWORD: Uhaf5AekUhaf5Aek
+            JAEGER_SERVICE_NAME: "zmon-eventlog"
+            JAEGER_AGENT_HOST: "jaeger"
+            JAEGER_AGENT_PORT: 5775
+            JAEGER_REPORTER_LOG_SPANS: "true"
+            JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+            JAEGER_TAGS: "opentracing=poc"
+            JAEGER_REPORTER_FLUSH_INTERVAL: 100
+            JAEGER_SAMPLER_TYPE: "probabilistic"
+            JAEGER_SAMPLER_PARAM: 1
         depends_on:
             - "postgresql"
     controller:
-        image: registry.opensource.zalan.do/stups/zmon-controller:v302
+        image: zmon-controller:ot
+        #image: pierone.stups.zalan.do/zmon/zmon-controller:v1.1-293-gdfc7f82-00cb2ea 
         environment:
           MEM_JAVA_PERCENT: 25
           MANAGEMENT_PORT: 7979
@@ -80,14 +116,33 @@ services:
           PRESHARED_TOKENS_123_UID: demotoken
           PRESHARED_TOKENS_123_EXPIRES_AT: 1758021422
           SPRING_APPLICATION_JSON: '{"server":{"ssl":{"key-store-type":"jks","key-store":"classpath:host-controller.jks","key-alias":"controller"}}}'
+          JAEGER_SERVICE_NAME: "zmon-controller"
+          JAEGER_SERVICE_NAME: "zmon-controller"
+          JAEGER_AGENT_HOST: "jaeger"
+          JAEGER_AGENT_PORT: 5775
+          JAEGER_REPORTER_LOG_SPANS: "true"
+          JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+          JAEGER_TAGS: "opentracing=poc"
+          JAEGER_REPORTER_FLUSH_INTERVAL: 100
+          JAEGER_SAMPLER_TYPE: "probabilistic"
+          JAEGER_SAMPLER_PARAM: 1
+          ZMON_NOTIFICATIONSERVICE_URL: "http://notification"
+          SSO_AUTHORIZE_URL: "https://auth.zalando.com/oauth2/authorize"
+          SSO_ACCESS_TOKEN_URL: "https://auth.zalando.com/oauth2/access_token?realm=/employees"
         ports:
          - "38080:8080"
          - "8443:8443"
         depends_on:
             - "redis"
             - "postgresql"
+            - "jaeger"
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        ports:
+         - "16686:16686"
     scheduler:
-        image: registry.opensource.zalan.do/stups/zmon-scheduler:v38
+        image: zmon-scheduler:ot1.0 
+        #image: registry.opensource.zalan.do/zmon/zmon-scheduler:v45 
         environment:
           MEM_JAVA_PERCENT: 20
           JAVA_OPTS: "-Djavax.net.ssl.trustStorePassword=mypassword -Djavax.net.ssl.trustStore=/resources/host-controller.jks"
@@ -96,12 +151,56 @@ services:
           SCHEDULER_OAUTH2_STATIC_TOKEN: "123"
           SCHEDULER_CONTROLLER_URL: https://controller:8443/
           SCHEDULER_REDIS_HOST: redis
+          JAEGER_SERVICE_NAME: "zmon-scheduler"
+          JAEGER_AGENT_HOST: "jaeger"
+          JAEGER_AGENT_PORT: 5775
+          JAEGER_REPORTER_LOG_SPANS: "true"
+          JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+          JAEGER_TAGS: "opentracing=poc"
+          JAEGER_REPORTER_FLUSH_INTERVAL: 100
+          JAEGER_SAMPLER_TYPE: "probabilistic"
+          JAEGER_SAMPLER_PARAM: 1
+          ZMON_BASE_URL: "http://data-service:8086"
+          LOCAL_ENTITY_ID: ""
+          SCHEDULER_ENTITY_SKIP_ON_FIELD: ""
+          SCHEDULER_ENABLE_GLOBAL_ENTITY: "true"
+        ports:
+        - "38079:8085"
         volumes:
             - "./resources:/resources"
     worker:
-        image: registry.opensource.zalan.do/stups/zmon-worker:v130
+        #image: registry.opensource.zalan.do/stups/zmon-worker:v130
+        image: zmon-worker:1.0
+        ports:
+         - "9000:8080"
         environment:
           WORKER_REDIS_SERVERS: redis:6379
-          WORKER_KAIROSDB_HOST: kairosdb
+          #WORKER_KAIROSDB_HOST: kairosdb
+          ZMON_WORKER_WORKER_DATASERVICE_URL: "http://data-service:8086/api/v1/data/"
+          WORKER_WORKER_DATASERVICE_URL: "http://data-service:8086/api/v1/data/"
+          OAUTH2_ACCESS_TOKEN_URL: "https://token.services.auth.zalando.com/oauth2/access_token?realm=/services"
           WORKER_EVENTLOG_HOST: eventlog
           WORKER_EVENTLOG_PORT: 8081
+          JAEGER_SERVICE_NAME: "zmon-worker"
+          JAEGER_AGENT_HOST: "jaeger"
+          JAEGER_AGENT_PORT: 5775
+          JAEGER_REPORTER_LOG_SPANS: "true"
+          JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+          JAEGER_TAGS: "opentracing=poc"
+    #notification:
+    #    image: zmon-notification-service-ot:1.0
+    #    environment:
+    #      NOTIFICATIONS_EVENTLOG_URL: "http://eventlog:8081"
+    #      NOTIFICATIONS_EVENTLOG_URL: "true"
+    #      NOTIFICATIONS_ZMON_URL: "http://controller:8443/"
+    #      NOTIFICATIONS_REDIS_URI: "redis://a34e6d909c3dc11e7a6b70249bf77341-678114054.eu-central-1.elb.amazonaws.com:6379/0"
+    #      JAEGER_SERVICE_NAME: "zmon-notification-service"
+    #      JAEGER_AGENT_HOST: "jaeger"
+    #      JAEGER_AGENT_PORT: 5775
+    #      JAEGER_REPORTER_LOG_SPANS: "true"
+    #      JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+    #      JAEGER_TAGS: "opentracing=poc"
+    #      JAEGER_REPORTER_FLUSH_INTERVAL: 100
+    #      JAEGER_SAMPLER_TYPE: "probabilistic"
+    #      JAEGER_SAMPLER_PARAM: 1
+    #      SERVER_PORT: 9090

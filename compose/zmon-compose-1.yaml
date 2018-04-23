@@ -1,0 +1,168 @@
+version: "2.1"
+services:
+    postgresql:
+        image: postgres:9.6.1
+        environment:
+            POSTGRES_PASSWORD: Uhaf5AekUhaf5Aek
+        ports:
+         - "38088:5432"
+        volumes:
+         - "/tmp/postgresql-data:/var/lib/postgresql/data"
+        healthcheck:
+            test: "psql -c 'SELECT 1' -U postgres"
+            interval: 10s
+            retries: 99
+            timeout: 10s
+    postgresql-schemas:
+        build: "postgresql-inject/"
+        environment:
+          POSTGRESQL_PASSWORD: Uhaf5AekUhaf5Aek
+        depends_on:
+          postgresql:
+              condition: "service_healthy"
+    cassandra:
+        image: cassandra:3.11
+        environment:
+            JAVA_OPTS: "-Xmx512M"
+        volumes:
+         - "/tmp/cassandra-data:/var/lib/cassandra" 
+        healthcheck:
+            test: "bash -c 'nodetool status | grep UN'"
+            interval: 15s
+            retries: 99
+            timeout: 15s
+    redis:
+        image: registry.opensource.zalan.do/stups/redis:3.2.0-alpine
+        ports:
+         - "38086:6379"
+    kairosdb:
+        image: registry.opensource.zalan.do/stups/kairosdb:cd102
+#        image: kairosdb-ot:1.0
+        environment:
+            KAIROSDB_JETTY_PORT: 8083
+            KAIROSDB_DATASTORE_CASSANDRA_HOST_LIST: cassandra
+            JAEGER_SERVICE_NAME: "zmon-eventlog"
+            JAEGER_AGENT_HOST: "jaeger"
+            JAEGER_AGENT_PORT: 5775
+            JAEGER_REPORTER_LOG_SPANS: "true"
+            JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+            JAEGER_TAGS: "opentracing=poc"
+            JAEGER_REPORTER_FLUSH_INTERVAL: 100
+            JAEGER_SAMPLER_TYPE: "probabilistic"
+            JAEGER_SAMPLER_PARAM: 1
+        depends_on:
+          cassandra:
+            condition: "service_healthy"
+        ports:
+         - "38083:8083"
+    eventlog:
+        image: pierone.stups.zalan.do/mentoring/zmon-eventlog-service:ot 
+        environment:
+            MEM_JAVA_PERCENT: 10
+            POSTGRESQL_HOST: postgresql
+            POSTGRESQL_DATABASE: local_zmon_db
+            POSTGRESQL_USER: postgres
+            POSTGRESQL_PASSWORD: Uhaf5AekUhaf5Aek
+            JAEGER_SERVICE_NAME: "zmon-eventlog"
+            JAEGER_AGENT_HOST: "jaeger"
+            JAEGER_AGENT_PORT: 5775
+            JAEGER_REPORTER_LOG_SPANS: "true"
+            JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+            JAEGER_TAGS: "opentracing=poc"
+            JAEGER_REPORTER_FLUSH_INTERVAL: 100
+            JAEGER_SAMPLER_TYPE: "probabilistic"
+            JAEGER_SAMPLER_PARAM: 1
+        depends_on:
+            - "postgresql"
+    controller:
+        image: pierone.stups.zalan.do/mentoring/zmon-controller-ot:1.4
+        environment:
+          MEM_JAVA_PERCENT: 25
+          MANAGEMENT_PORT: 7979
+          MANAGEMENT_SECURITY_ENABLED: "false"
+          SPRING_PROFILES_ACTIVE: github
+          ZMON_TEAMS_SIMPLE_DEFAULT_TEAM: ZMON
+          ZMON_SIGNUP_GITHUB_ALLOWED_USERS: "*"
+          ZMON_SIGNUP_GITHUB_ALLOWED_ORGAS: "*"
+          ZMON_OAUTH2_SSO_CLIENT_ID: 344c9a90fc697fe6662a
+          ZMON_OAUTH2_SSO_CLIENT_SECRET: a2bbb03a29f6737af04c77f2d88e8f8199ff179b
+          ZMON_AUTHORITIES_SIMPLE_ADMINS: "*"
+          POSTGRES_URL: jdbc:postgresql://postgresql:5432/local_zmon_db
+          POSTGRES_USERNAME: postgres
+          POSTGRES_PASSWORD: Uhaf5AekUhaf5Aek
+          REDIS_HOST: redis
+          REDIS_PORT: 6379
+          ZMON_KAIROSDB_URL: http://kairosdb:8083/
+          ZMON_SCHEDULER_URL: http://scheduler:8085/
+          ZMON_EVENTLOG_URL: http://eventlog:8081/
+          ZMON_JWT_SECRET: DEMO-ONLY-CHANGE-ME-Bgzogya43C3bvV0o
+          PRESHARED_TOKENS_123_UID: demotoken
+          PRESHARED_TOKENS_123_EXPIRES_AT: 1758021422
+          SPRING_APPLICATION_JSON: '{"server":{"ssl":{"key-store-type":"jks","key-store":"classpath:host-controller.jks","key-alias":"controller"}}}'
+          JAEGER_SERVICE_NAME: "zmon-controller"
+          JAEGER_AGENT_HOST: "jaeger"
+          JAEGER_AGENT_PORT: 5775
+          JAEGER_REPORTER_LOG_SPANS: "true"
+          JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+          JAEGER_TAGS: "opentracing=poc"
+          JAEGER_REPORTER_FLUSH_INTERVAL: 100
+          JAEGER_SAMPLER_TYPE: "probabilistic"
+          JAEGER_SAMPLER_PARAM: 1
+          ZMON_NOTIFICATIONSERVICE_URL: "http://notification"
+          SSO_AUTHORIZE_URL: "https://auth.zalando.com/oauth2/authorize"
+          SSO_ACCESS_TOKEN_URL: "https://auth.zalando.com/oauth2/access_token?realm=/employees"
+        ports:
+         - "38080:8080"
+         - "8443:8443"
+        depends_on:
+            - "redis"
+            - "postgresql"
+    scheduler:
+        image: pierone.stups.zalan.do/mentoring/zmon-scheduler-ot:1.0 
+        environment:
+          MEM_JAVA_PERCENT: 20
+          JAVA_OPTS: "-Djavax.net.ssl.trustStorePassword=mypassword -Djavax.net.ssl.trustStore=/resources/host-controller.jks"
+          SCHEDULER_URLS_WITHOUT_REST: "true"
+          SCHEDULER_ENTITY_SERVICE_URL: https://controller:8443/
+          SCHEDULER_OAUTH2_STATIC_TOKEN: "123"
+          SCHEDULER_CONTROLLER_URL: https://controller:8443/
+          SCHEDULER_REDIS_HOST: redis
+          JAEGER_SERVICE_NAME: "zmon-scheduler"
+          JAEGER_AGENT_HOST: "jaeger"
+          JAEGER_AGENT_PORT: 5775
+          JAEGER_REPORTER_LOG_SPANS: "true"
+          JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+          JAEGER_TAGS: "opentracing=poc"
+          JAEGER_REPORTER_FLUSH_INTERVAL: 100
+          JAEGER_SAMPLER_TYPE: "probabilistic"
+          JAEGER_SAMPLER_PARAM: 1
+        volumes:
+            - "./resources:/resources"
+    worker:
+        image: registry.opensource.zalan.do/stups/zmon-worker:v130
+        environment:
+          WORKER_REDIS_SERVERS: redis:6379
+          WORKER_KAIROSDB_HOST: kairosdb
+          WORKER_EVENTLOG_HOST: eventlog
+          WORKER_EVENTLOG_PORT: 8081
+    notification:
+        image: zmon-notification-service-ot:1.0
+        environment:
+          NOTIFICATIONS_EVENTLOG_URL: "http://eventlog:8081"
+          NOTIFICATIONS_EVENTLOG_URL: "true"
+          NOTIFICATIONS_ZMON_URL: "http://controller:8443/"
+          NOTIFICATIONS_REDIS_URI: "redis://redis:6379/0"
+          JAEGER_SERVICE_NAME: "zmon-notification-service"
+          JAEGER_AGENT_HOST: "jaeger"
+          JAEGER_AGENT_PORT: 5775
+          JAEGER_REPORTER_LOG_SPANS: "true"
+          JAEGER_REPORTER_MAX_QUEUE_SIZE: 100
+          JAEGER_TAGS: "opentracing=poc"
+          JAEGER_REPORTER_FLUSH_INTERVAL: 100
+          JAEGER_SAMPLER_TYPE: "probabilistic"
+          JAEGER_SAMPLER_PARAM: 1
+          SERVER_PORT: 9090
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        ports:
+         - "16686:16686"
