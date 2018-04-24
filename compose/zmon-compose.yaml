@@ -34,25 +34,13 @@ services:
             interval: 15s
             retries: 99
             timeout: 15s
-    data-service:
-        #image: zmon-data-service:1.0
-        image: pierone.stups.zalan.do/zmon/zmon-data-service-unstable:pr-85-1-1bf4e01
-        environment:
-            JAVA_OPTS: "-Xmx512M -Dappdynamics.controller.hostName=test-appd.zalando.org -Dappdynamics.controller.port=443 -Dappdynamics.controller.ssl.enabled=true -Dappdynamics.agent.applicationName=zmon -Dappdynamics.agent.tierName=zmon-data-service -Dappdynamics.agent.nodeName=zmon-data-service -Dappdynamics.agent.accountName=customer1 -Dappdynamics.agent.accountAccessKey=9966815f-23ba-4de1-a9fb-19e9a07a49a6"
-            DATASERVICE_PROXY_KAIROSDB_URL: http://kairosdb:8083
-            DATASERVICE_REDIS_HOST: redis
-            DATASERVICE_REDIS_PORT: 6379
-            DATASERVICE_EVENTLOG_URL: http://eventlog:8081/
-            TOKENINFO_URL:  https://info.services.auth.zalando.com/oauth2/tokeninfo?access_token=
-        ports:
-         - "8086:8086"
     redis:
         image: registry.opensource.zalan.do/stups/redis:3.2.0-alpine
         ports:
          - "38086:6379"
     kairosdb:
         #image: pierone.stups.zalan.do/zmon/kairosdb-unstable:pr-49-6-2146543
-        image: kairosdb-ot:1.0
+        image: vibhory2j/kairosdb-ot:1.1
         environment:
             KAIROSDB_JETTY_PORT: 8083
             KAIROSDB_DATASTORE_CASSANDRA_HOST_LIST: cassandra
@@ -66,13 +54,14 @@ services:
             JAEGER_REPORTER_FLUSH_INTERVAL: 100
             JAEGER_SAMPLER_TYPE: "probabilistic"
             JAEGER_SAMPLER_PARAM: 1
+            JAVA_OPTS: "-Xms1024M -Xmx1024M"
         depends_on:
           cassandra:
             condition: "service_healthy"
         ports:
          - "38083:8083"
     eventlog:
-        image: pierone.stups.zalan.do/mentoring/zmon-eventlog-service:ot 
+        image: vibhory2j/zmon-eventlog-service:ot 
         environment:
             MEM_JAVA_PERCENT: 10
             POSTGRESQL_HOST: postgresql
@@ -91,7 +80,7 @@ services:
         depends_on:
             - "postgresql"
     controller:
-        image: zmon-controller:ot
+        image: vibhory2j/zmon-controller:ot
         #image: pierone.stups.zalan.do/zmon/zmon-controller:v1.1-293-gdfc7f82-00cb2ea 
         environment:
           MEM_JAVA_PERCENT: 25
@@ -141,7 +130,7 @@ services:
         ports:
          - "16686:16686"
     scheduler:
-        image: zmon-scheduler:ot1.0 
+        image: vibhory2j/zmon-scheduler:ot1.0 
         #image: registry.opensource.zalan.do/zmon/zmon-scheduler:v45 
         environment:
           MEM_JAVA_PERCENT: 20
@@ -169,8 +158,8 @@ services:
         volumes:
             - "./resources:/resources"
     worker:
-        #image: registry.opensource.zalan.do/stups/zmon-worker:v130
-        image: zmon-worker:1.0
+        image: registry.opensource.zalan.do/stups/zmon-worker:v130
+        #image: zmon-worker:1.0
         ports:
          - "9000:8080"
         environment:
