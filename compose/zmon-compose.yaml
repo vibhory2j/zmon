@@ -85,6 +85,7 @@ services:
             OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
             OPENTRACING_LIGHTSTEP_COMPONENT_NAME: "kairosdb_local_vibs"
             OPENTRACING_TRACER: "lightstep"
+            JAVA_OPTS: "-Xms1024M -Xmx1024M"
         depends_on:
           cassandra:
             condition: "service_healthy"
@@ -92,7 +93,7 @@ services:
          - "38083:8083"
          - "5775:5775"
     eventlog:
-        image: pierone.stups.zalan.do/mentoring/zmon-eventlog-service:ot 
+        image: vibhory2j/zmon-eventlog-service:ot 
         environment:
             MEM_JAVA_PERCENT: 10
             POSTGRESQL_HOST: postgresql
