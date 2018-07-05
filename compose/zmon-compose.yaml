@@ -44,10 +44,10 @@ services:
             #DATASERVICE_REDIS_HOST: a34e6d909c3dc11e7a6b70249bf77341-678114054.eu-central-1.elb.amazonaws.com
             DATASERVICE_REDIS_PORT: 6379
             DATASERVICE_EVENTLOG_URL: http://eventlog:8081/
-            TOKENINFO_URL:  https://info.services.auth.zalando.com/oauth2/tokeninfo?access_token=
-            OPENTRACING_LIGHTSTEP_COLLECTOR_HOST: "tracing.zmon.zalan.do"
+            TOKENINFO_URL:  
+            OPENTRACING_LIGHTSTEP_COLLECTOR_HOST: ""
             OPENTRACING_LIGHTSTEP_COLLECTOR_PORT: 8445
-            OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+            OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: ""
             OPENTRACING_LIGHTSTEP_COMPONENT_NAME: "data-service-vibs"
             OPENTRACING_TRACER: "lightstep"
             SPRING_APPLICATION_JSON: |
@@ -80,9 +80,9 @@ services:
             JAEGER_REPORTER_FLUSH_INTERVAL: 100
             JAEGER_SAMPLER_TYPE: "probabilistic"
             JAEGER_SAMPLER_PARAM: 1
-            OPENTRACING_LIGHTSTEP_COLLECTOR_HOST: "tracing.zmon.zalan.do"
+            OPENTRACING_LIGHTSTEP_COLLECTOR_HOST: ""
             OPENTRACING_LIGHTSTEP_COLLECTOR_PORT: 8445
-            OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+            OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: ""
             OPENTRACING_LIGHTSTEP_COMPONENT_NAME: "kairosdb_local_vibs"
             OPENTRACING_TRACER: "lightstep"
             JAVA_OPTS: "-Xms1024M -Xmx1024M"
@@ -148,19 +148,19 @@ services:
           JAEGER_SAMPLER_TYPE: "probabilistic"
           JAEGER_SAMPLER_PARAM: 1
           ZMON_NOTIFICATIONSERVICE_URL: "http://notification"
-          SSO_AUTHORIZE_URL: "https://auth.zalando.com/oauth2/authorize"
-          SSO_ACCESS_TOKEN_URL: "https://auth.zalando.com/oauth2/access_token?realm=/employees"
+          SSO_AUTHORIZE_URL: ""
+          SSO_ACCESS_TOKEN_URL: ""
           TRACER_LIGHTSTEP_ENABLED: "true"
           TRACER_COMPONENT_NAME: "local_controller_grpc"
-          TRACER_COLLECTOR_HOST: "lightstep-collector-grpc.stups-test.zalan.do"
+          TRACER_COLLECTOR_HOST: ""
           TRACER_COLLECTOR_PORT: 443
-          TRACER_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+          TRACER_ACCESS_TOKEN: ""
           #OPENTRACING_LIGHTSTEP_HOST: "lightstep-collector-grpc.stups-test.zalan.do"
           OPENTRACING_LIGHTSTEP_HOST: "tracing.zmon.zalan.do"
           OPENTRACING_LIGHTSTEP_PORT: 8445
-          OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+          OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: ""
           OPENTRACING_LIGHTSTEP_SERVICE_NAME: "zmon_local_vibs"
-          OPENTRACING_LIGHTSTEP_EUM_HOST: "tracing.zmon.zalan.do"
+          OPENTRACING_LIGHTSTEP_EUM_HOST: ""
           OPENTRACING_LIGHTSTEP_EUM_PORT: 8443
           OPENTRACING_LIGHTSTEP_EUM_SERVICE_NAME: "zmon-controller-ui"
           OPENTRACING_LIGHTSTEP_EUM_VERBOSITY: 1
@@ -200,9 +200,9 @@ services:
           JAEGER_SAMPLER_PARAM: 1
           OPENTRACING_LIGHTSTEP_HOST: "tracing.zmon.zalan.do"
           OPENTRACING_LIGHTSTEP_PORT: 8445
-          OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+          OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: ""
           OPENTRACING_LIGHTSTEP_SERVICE_NAME: "scheduler_local_vibs"
-          OPENTRACING_LIGHTSTEP_EUM_HOST: "tracing.zmon.zalan.do"
+          OPENTRACING_LIGHTSTEP_EUM_HOST: ""
           OPENTRACING_LIGHTSTEP_EUM_PORT: 8443
           OPENTRACING_PROVIDER: "lightstep"
           ZMON_BASE_URL: "http://data-service:8086"
@@ -257,5 +257,5 @@ services:
           REDIS_HOST: redis 
           KAIROSDB_URLS: http://kairosdb:8083/api/v1/datapoints
           NUM_WORKERS: 42
-          LIGHTSTEP_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
-          LIGHTSTEP_COLLECTOR: "tracing.zmon.zalan.do"
+          LIGHTSTEP_TOKEN: ""
+          LIGHTSTEP_COLLECTOR: ""
