@@ -5,13 +5,13 @@ metadata:
 spec:
   rules:
     # DNS name your application should be exposed on
-    - host: "zmon-test.teapot.zalan.do"
+    - host: zmon-test.stups-test.zalan.do
       http:
         paths:
           - backend:
               serviceName: "controller"
               servicePort: main-port
-        paths:
-          - backend:
+          - path: /metrics
+            backend:
               serviceName: "controller"
               servicePort: manage-port

@@ -35,15 +35,28 @@ services:
             retries: 99
             timeout: 15s
     data-service:
-        #image: zmon-data-service:1.0
-        image: pierone.stups.zalan.do/zmon/zmon-data-service-unstable:pr-85-1-1bf4e01
+        image: zmon-data-service:ot-1.0
+        #image: pierone.stups.zalan.do/zmon/zmon-data-service-unstable:pr-89-1-6ea1f0a
         environment:
             JAVA_OPTS: "-Xmx512M -Dappdynamics.controller.hostName=test-appd.zalando.org -Dappdynamics.controller.port=443 -Dappdynamics.controller.ssl.enabled=true -Dappdynamics.agent.applicationName=zmon -Dappdynamics.agent.tierName=zmon-data-service -Dappdynamics.agent.nodeName=zmon-data-service -Dappdynamics.agent.accountName=customer1 -Dappdynamics.agent.accountAccessKey=9966815f-23ba-4de1-a9fb-19e9a07a49a6"
             DATASERVICE_PROXY_KAIROSDB_URL: http://kairosdb:8083
             DATASERVICE_REDIS_HOST: redis
+            #DATASERVICE_REDIS_HOST: a34e6d909c3dc11e7a6b70249bf77341-678114054.eu-central-1.elb.amazonaws.com
             DATASERVICE_REDIS_PORT: 6379
             DATASERVICE_EVENTLOG_URL: http://eventlog:8081/
             TOKENINFO_URL:  https://info.services.auth.zalando.com/oauth2/tokeninfo?access_token=
+            OPENTRACING_LIGHTSTEP_COLLECTOR_HOST: "tracing.zmon.zalan.do"
+            OPENTRACING_LIGHTSTEP_COLLECTOR_PORT: 8445
+            OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+            OPENTRACING_LIGHTSTEP_COMPONENT_NAME: "data-service-vibs"
+            OPENTRACING_TRACER: "lightstep"
+            SPRING_APPLICATION_JSON: |
+              {"dataservice": {
+                "data_points_store_properties": {
+                    "enabled": true,
+                    "host": "redis"
+                }
+              }}
         ports:
          - "8086:8086"
     redis:
@@ -51,8 +64,9 @@ services:
         ports:
          - "38086:6379"
     kairosdb:
-        #image: pierone.stups.zalan.do/zmon/kairosdb-unstable:pr-49-6-2146543
-        image: kairosdb-ot:1.0
+        #image: pierone.stups.zalan.do/zmon/kairosdb-unstable:pr-54-5-test
+        image: pierone.stups.zalan.do/zmon/kairosdb-unstable:pr-54-10-test2 
+        #image: kairosdb:ot-1.0 
         environment:
             KAIROSDB_JETTY_PORT: 8083
             KAIROSDB_DATASTORE_CASSANDRA_HOST_LIST: cassandra
@@ -66,11 +80,17 @@ services:
             JAEGER_REPORTER_FLUSH_INTERVAL: 100
             JAEGER_SAMPLER_TYPE: "probabilistic"
             JAEGER_SAMPLER_PARAM: 1
+            OPENTRACING_LIGHTSTEP_COLLECTOR_HOST: "tracing.zmon.zalan.do"
+            OPENTRACING_LIGHTSTEP_COLLECTOR_PORT: 8445
+            OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+            OPENTRACING_LIGHTSTEP_COMPONENT_NAME: "kairosdb_local_vibs"
+            OPENTRACING_TRACER: "lightstep"
         depends_on:
           cassandra:
             condition: "service_healthy"
         ports:
          - "38083:8083"
+         - "5775:5775"
     eventlog:
         image: pierone.stups.zalan.do/mentoring/zmon-eventlog-service:ot 
         environment:
@@ -91,8 +111,8 @@ services:
         depends_on:
             - "postgresql"
     controller:
-        image: zmon-controller:ot
-        #image: pierone.stups.zalan.do/zmon/zmon-controller:v1.1-293-gdfc7f82-00cb2ea 
+        #image: zmon-controller:ot-1.0 
+        image: pierone.stups.zalan.do/zmon/zmon-controller:v346-zv1
         environment:
           MEM_JAVA_PERCENT: 25
           MANAGEMENT_PORT: 7979
@@ -115,7 +135,7 @@ services:
           ZMON_JWT_SECRET: DEMO-ONLY-CHANGE-ME-Bgzogya43C3bvV0o
           PRESHARED_TOKENS_123_UID: demotoken
           PRESHARED_TOKENS_123_EXPIRES_AT: 1758021422
-          SPRING_APPLICATION_JSON: '{"server":{"ssl":{"key-store-type":"jks","key-store":"classpath:host-controller.jks","key-alias":"controller"}}}'
+          #SPRING_APPLICATION_JSON: '{"server":{"ssl":{"key-store-type":"jks","key-store":"classpath:host-controller.jks","key-alias":"controller"}}}'
           JAEGER_SERVICE_NAME: "zmon-controller"
           JAEGER_SERVICE_NAME: "zmon-controller"
           JAEGER_AGENT_HOST: "jaeger"
@@ -129,9 +149,26 @@ services:
           ZMON_NOTIFICATIONSERVICE_URL: "http://notification"
           SSO_AUTHORIZE_URL: "https://auth.zalando.com/oauth2/authorize"
           SSO_ACCESS_TOKEN_URL: "https://auth.zalando.com/oauth2/access_token?realm=/employees"
+          TRACER_LIGHTSTEP_ENABLED: "true"
+          TRACER_COMPONENT_NAME: "local_controller_grpc"
+          TRACER_COLLECTOR_HOST: "lightstep-collector-grpc.stups-test.zalan.do"
+          TRACER_COLLECTOR_PORT: 443
+          TRACER_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+          #OPENTRACING_LIGHTSTEP_HOST: "lightstep-collector-grpc.stups-test.zalan.do"
+          OPENTRACING_LIGHTSTEP_HOST: "tracing.zmon.zalan.do"
+          OPENTRACING_LIGHTSTEP_PORT: 8445
+          OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+          OPENTRACING_LIGHTSTEP_SERVICE_NAME: "zmon_local_vibs"
+          OPENTRACING_LIGHTSTEP_EUM_HOST: "tracing.zmon.zalan.do"
+          OPENTRACING_LIGHTSTEP_EUM_PORT: 8443
+          OPENTRACING_LIGHTSTEP_EUM_SERVICE_NAME: "zmon-controller-ui"
+          OPENTRACING_LIGHTSTEP_EUM_VERBOSITY: 1
+          OPENTRACING_LIGHTSTEP_EUM_XHR: "true"
+          OPENTRACING_PROVIDER: "lightstep"
         ports:
          - "38080:8080"
          - "8443:8443"
+         - "7979:7979"
         depends_on:
             - "redis"
             - "postgresql"
@@ -141,8 +178,8 @@ services:
         ports:
          - "16686:16686"
     scheduler:
-        image: zmon-scheduler:ot1.0 
-        #image: registry.opensource.zalan.do/zmon/zmon-scheduler:v45 
+        #image: scheduler:1.0
+        image: pierone.stups.zalan.do/zmon/zmon-scheduler:v46-zv148
         environment:
           MEM_JAVA_PERCENT: 20
           JAVA_OPTS: "-Djavax.net.ssl.trustStorePassword=mypassword -Djavax.net.ssl.trustStore=/resources/host-controller.jks"
@@ -160,6 +197,13 @@ services:
           JAEGER_REPORTER_FLUSH_INTERVAL: 100
           JAEGER_SAMPLER_TYPE: "probabilistic"
           JAEGER_SAMPLER_PARAM: 1
+          OPENTRACING_LIGHTSTEP_HOST: "tracing.zmon.zalan.do"
+          OPENTRACING_LIGHTSTEP_PORT: 8445
+          OPENTRACING_LIGHTSTEP_ACCESS_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+          OPENTRACING_LIGHTSTEP_SERVICE_NAME: "scheduler_local_vibs"
+          OPENTRACING_LIGHTSTEP_EUM_HOST: "tracing.zmon.zalan.do"
+          OPENTRACING_LIGHTSTEP_EUM_PORT: 8443
+          OPENTRACING_PROVIDER: "lightstep"
           ZMON_BASE_URL: "http://data-service:8086"
           LOCAL_ENTITY_ID: ""
           SCHEDULER_ENTITY_SKIP_ON_FIELD: ""
@@ -169,8 +213,8 @@ services:
         volumes:
             - "./resources:/resources"
     worker:
-        #image: registry.opensource.zalan.do/stups/zmon-worker:v130
-        image: zmon-worker:1.0
+        image: registry.opensource.zalan.do/stups/zmon-worker:v130
+        #image: zmon-worker:1.0
         ports:
          - "9000:8080"
         environment:
@@ -204,3 +248,13 @@ services:
     #      JAEGER_SAMPLER_TYPE: "probabilistic"
     #      JAEGER_SAMPLER_PARAM: 1
     #      SERVER_PORT: 9090
+    datapoints-consumer:
+        #image: pierone.stups.zalan.do/eagleeye/zmon-datapoints-consumer:r13
+        #image: pierone.stups.zalan.do/eagleeye/zmon-datapoints-consumer-test:pr-20-14
+        image: datapoints-consumer:ot-1.0
+        environment:
+          REDIS_HOST: redis 
+          KAIROSDB_URLS: http://kairosdb:8083/api/v1/datapoints
+          NUM_WORKERS: 42
+          LIGHTSTEP_TOKEN: "b34a7e251d37e888e0daf472ac5362b8"
+          LIGHTSTEP_COLLECTOR: "tracing.zmon.zalan.do"
